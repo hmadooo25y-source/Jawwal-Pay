@@ -65,19 +65,37 @@ button,input{font:inherit}
 .sheet.final .hint{display:none}
 .sheet.final .actions{margin:0}.sheet.final .cancel{background:var(--blue);color:#fff;height:46px;font-size:16px;border-radius:23px}
 /* شاشة المكالمة */
-.callscreen{position:absolute;inset:0;background:#eef1f8;display:none;flex-direction:column;z-index:6;direction:rtl}
+.callscreen{position:absolute;inset:0;background:var(--bg);display:none;flex-direction:column;z-index:6;direction:rtl}
 .callscreen.show{display:flex}
-.cs-top{flex:1;display:flex;flex-direction:column;align-items:center;padding-top:110px}
-.cs-status{font-size:16px;color:#3c4043;margin-bottom:18px}
-.cs-number{font-size:34px;color:#1f1f1f;direction:ltr;margin-bottom:10px}
-.cs-country{font-size:15px;color:#5f6368}
-.cs-controls{padding:0 24px 56px}
-.cs-row{display:flex;justify-content:space-between;margin-bottom:40px}
-.cs-btn{display:flex;flex-direction:column;align-items:center;gap:8px;background:transparent;border:0;color:#3c4043;width:72px;padding:0}
+.cs-top{flex:1;display:flex;flex-direction:column;align-items:center;padding-top:92px}
+.cs-status{font-size:15px;color:#3c4043;margin-bottom:16px}
+.cs-number{font-size:36px;color:#1f1f1f;direction:ltr;margin-bottom:9px;font-weight:400}
+.cs-country{font-size:14px;color:#5f6368}
+.cs-controls{padding:0 24px 48px;position:relative}
+.cs-row{display:flex;justify-content:space-between;margin-bottom:38px}
+.cs-btn{display:flex;flex-direction:column;align-items:center;gap:8px;background:transparent;border:0;color:#3c4043;width:72px;padding:0;position:relative}
 .cs-btn .ic{width:56px;height:56px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px #0002}
 .cs-btn.active .ic{background:#d2e3fc}
+.cs-btn.active{color:#1967d2}
 .cs-btn span:last-child{font-size:13px}
 .cs-end{align-self:center;width:72px;height:72px;border-radius:50%;background:#e8453c;border:0;display:flex;align-items:center;justify-content:center;margin:0 auto}
+/* قائمة المزيد */
+.cs-more-menu{position:absolute;bottom:106px;right:24px;background:#fff;border-radius:14px;box-shadow:0 2px 10px #0003;display:none;flex-direction:column;overflow:hidden;min-width:168px;z-index:2}
+.cs-more-menu.show{display:flex}
+.cs-more-menu button{border:0;background:#fff;padding:13px 16px;text-align:right;font-size:14.5px;color:#1f1f1f}
+.cs-more-menu button:active{background:#f0f0f0}
+.cs-more-menu button+button{border-top:1px solid #eee}
+/* لوحة مفاتيح أثناء المكالمة */
+.cs-keypad{display:none;flex-direction:column;align-items:center}
+.callscreen.kp-open .cs-row,.callscreen.kp-open .cs-end{display:none}
+.callscreen.kp-open .cs-keypad{display:flex}
+.cs-kp-display{min-height:28px;font-size:26px;letter-spacing:2px;color:#1f1f1f;direction:ltr;margin-bottom:16px}
+.cs-kp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:272px;margin-bottom:20px}
+.cs-kp-grid button{height:58px;border:0;border-radius:50%;background:#fff;color:#111;display:flex;flex-direction:column;justify-content:center;align-items:center;box-shadow:0 1px 2px #0002;padding:0}
+.cs-kp-grid button .num{font-size:22px}
+.cs-kp-grid button small{font-size:10px;color:#777;margin-top:1px}
+.cs-kp-hide{display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;border:0;color:#3c4043}
+.cs-kp-hide .ic{width:48px;height:48px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px #0002}
 </style>
 </head>
 <body>
@@ -103,14 +121,24 @@ button,input{font:inherit}
       <div class="cs-number" id="csNumber"></div>
       <div class="cs-country">إسرائيل</div>
     </div>
-    <div class="cs-controls">
+    <div class="cs-controls" id="csControls">
       <div class="cs-row">
         <button class="cs-btn" id="csMore"><span class="ic"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="5" r="2" fill="#3c4043"/><circle cx="12" cy="12" r="2" fill="#3c4043"/><circle cx="12" cy="19" r="2" fill="#3c4043"/></svg></span><span>المزيد</span></button>
         <button class="cs-btn" id="csSpeaker"><span class="ic"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="#3c4043" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.26 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></span><span>مكبر الصوت</span></button>
-        <button class="cs-btn" id="csMute"><span class="ic"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="#3c4043" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg></span><span>كتم</span></button>
+        <button class="cs-btn" id="csMute"><span class="ic" id="csMuteIc"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="#3c4043" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg></span><span>كتم</span></button>
         <button class="cs-btn" id="csPad"><span class="ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="#3c4043"><circle cx="5" cy="5" r="1.6"/><circle cx="12" cy="5" r="1.6"/><circle cx="19" cy="5" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/><circle cx="5" cy="19" r="1.6"/><circle cx="12" cy="19" r="1.6"/><circle cx="19" cy="19" r="1.6"/></svg></span><span>لوحة المفاتيح</span></button>
       </div>
       <button class="cs-end" id="csEnd" aria-label="إنهاء المكالمة"><svg viewBox="0 0 24 24" width="30" height="30" style="transform:rotate(135deg)"><path fill="#fff" d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
+      <div class="cs-more-menu" id="csMoreMenu">
+        <button data-m="1">إضافة مكالمة</button>
+        <button data-m="2">ملاحظة مكالمة</button>
+        <button data-m="3">اتصال طارئ</button>
+      </div>
+      <div class="cs-keypad" id="csKeypad">
+        <div class="cs-kp-display" id="csKpDisplay">&nbsp;</div>
+        <div class="cs-kp-grid" id="csKpGrid"></div>
+        <button class="cs-kp-hide" id="csKpHide"><span class="ic"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="#3c4043" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></span><span>إخفاء</span></button>
+      </div>
     </div>
   </div>
 </div>
@@ -149,15 +177,15 @@ function dtmf(n){
  }catch(e){}
 }
 /* نغمة رنين الاتصال (محاكاة) */
-let ringTimer=null,ringMuted=false;
+let ringTimer=null,ringMuted=false,speakerOn=false;
 function ringBeep(){
  if(ringMuted)return;
  try{
   if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
   if(actx.state==='suspended')actx.resume();
-  const t0=actx.currentTime,dur=1,g=actx.createGain();
-  g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(.16,t0+.02);
-  g.gain.setValueAtTime(.16,t0+dur-.05);g.gain.linearRampToValueAtTime(0,t0+dur);
+  const t0=actx.currentTime,dur=1,peak=speakerOn?.32:.16,g=actx.createGain();
+  g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(peak,t0+.02);
+  g.gain.setValueAtTime(peak,t0+dur-.05);g.gain.linearRampToValueAtTime(0,t0+dur);
   g.connect(actx.destination);
   const o=actx.createOscillator();o.type='sine';o.frequency.value=425;o.connect(g);o.start(t0);o.stop(t0+dur);
  }catch(e){}
@@ -166,22 +194,37 @@ function startRingback(){stopRingback();ringBeep();ringTimer=setInterval(ringBee
 function stopRingback(){if(ringTimer){clearInterval(ringTimer);ringTimer=null}}
 /* شاشة المكالمة */
 const callscreen=document.getElementById('callscreen'),csNumber=document.getElementById('csNumber');
+const csMore=document.getElementById('csMore'),csMoreMenu=document.getElementById('csMoreMenu');
+const csMute=document.getElementById('csMute'),csMuteIc=document.getElementById('csMuteIc'),csSpeaker=document.getElementById('csSpeaker');
+const csPad=document.getElementById('csPad'),csKpDisplay=document.getElementById('csKpDisplay');
+const MIC_ON='<svg viewBox="0 0 24 24" width="22" height="22"><path fill="#3c4043" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg>';
+const MIC_OFF='<svg viewBox="0 0 24 24" width="22" height="22"><path fill="#1967d2" d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/></svg>';
 function fmtPhone(d){return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6)}
+function closeMoreMenu(){csMoreMenu.classList.remove('show')}
 function startCall(num){
  csNumber.textContent=fmtPhone(num);
  document.getElementById('csStatus').textContent='جارٍ الاتصال...';
- ringMuted=false;document.getElementById('csMute').classList.remove('active');
- document.getElementById('csSpeaker').classList.remove('active');
+ ringMuted=false;csMute.classList.remove('active');csMuteIc.innerHTML=MIC_ON;
+ speakerOn=false;csSpeaker.classList.remove('active');
+ callscreen.classList.remove('kp-open');closeMoreMenu();
  callscreen.classList.add('show');
  startRingback();
 }
-function endCall(){stopRingback();callscreen.classList.remove('show');dial.value=''}
+function endCall(){stopRingback();callscreen.classList.remove('show','kp-open');closeMoreMenu();dial.value=''}
 document.getElementById('csEnd').onclick=endCall;
-document.getElementById('csMute').onclick=()=>{ringMuted=!ringMuted;document.getElementById('csMute').classList.toggle('active',ringMuted)};
-document.getElementById('csSpeaker').onclick=()=>{document.getElementById('csSpeaker').classList.toggle('active')};
+csMute.onclick=()=>{ringMuted=!ringMuted;csMute.classList.toggle('active',ringMuted);csMuteIc.innerHTML=ringMuted?MIC_OFF:MIC_ON};
+csSpeaker.onclick=()=>{speakerOn=!speakerOn;csSpeaker.classList.toggle('active',speakerOn)};
+csMore.onclick=e=>{e.stopPropagation();csMoreMenu.classList.toggle('show')};
+csMoreMenu.querySelectorAll('button').forEach(b=>b.onclick=()=>{closeMoreMenu()});
+callscreen.addEventListener('click',e=>{if(!csMoreMenu.contains(e.target)&&e.target!==csMore&&!csMore.contains(e.target))closeMoreMenu()});
+/* لوحة مفاتيح أثناء المكالمة لإرسال نغمات DTMF */
+const csKpGrid=document.getElementById('csKpGrid');
+csPad.onclick=()=>{closeMoreMenu();csKpDisplay.textContent='';callscreen.classList.add('kp-open')};
+document.getElementById('csKpHide').onclick=()=>callscreen.classList.remove('kp-open');
 const keys=[['1','VM'],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['*',''],['0','+'],['#','']];
 const keypad=document.getElementById('keypad');
 keys.forEach(([n,s])=>{const b=document.createElement('button');b.className='key';b.innerHTML=`<span class="num">${n}</span><small>${s==='VM'?'<svg viewBox="0 0 24 24" width="17" height="17"><path fill="#3b3b3b" d="M18.5 6C15.46 6 13 8.46 13 11.5c0 1.33.47 2.55 1.26 3.5H9.74c.79-.95 1.26-2.17 1.26-3.5C11 8.46 8.54 6 5.5 6S0 8.46 0 11.5 2.46 17 5.5 17h13c3.04 0 5.5-2.46 5.5-5.5S21.54 6 18.5 6zm-13 9C3.57 15 2 13.43 2 11.5S3.57 8 5.5 8 9 9.57 9 11.5 7.43 15 5.5 15zm13 0c-1.93 0-3.5-1.57-3.5-3.5S16.57 8 18.5 8 22 9.57 22 11.5 20.43 15 18.5 15z"/></svg>':(s||'&nbsp;')}</small>`;b.onclick=()=>{dtmf(n);dial.value+=n};keypad.appendChild(b)});
+keys.forEach(([n,s])=>{const b=document.createElement('button');b.innerHTML=`<span class="num">${n}</span><small>${s==='VM'?'':(s||'&nbsp;')}</small>`;b.onclick=()=>{dtmf(n);csKpDisplay.textContent+=n};csKpGrid.appendChild(b)});
 document.getElementById('erase').onclick=()=>dial.value=dial.value.slice(0,-1);
 document.getElementById('call').onclick=()=>{
  const v=dial.value.trim();

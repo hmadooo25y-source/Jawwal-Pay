@@ -194,8 +194,7 @@ function render(){
  else if(stage==='pin')text='ادخل الرقم السري (4 أرقام)\n00. الرجوع إلى القائمة الرئيسية';
  else if(stage==='success'){text='تم تحويل المبلغ بنجاح';document.querySelector('.ussd-input').style.display='none';document.querySelector('.actions').style.display='flex';}
  else if(stage==='insufficient'){text='الرصيد غير كافٍ. رصيدك الحالي : '+getBal();document.querySelector('.ussd-input').style.display='none';document.querySelector('.actions').style.display='flex';}
- else if(stage==='invalid')text='الرمز غير معروف .\nاكتب *110# لفتح القائمة.';
- else text='أدخل الاختيار';
+ else if(stage==='invalid')text='حدثت مشكلة في الاتصال او ان رمز MMI غير صحيح.\';
  message.textContent=text;
  const isFinal=stage==='balance'||stage==='success'||stage==='insufficient';
  sheet.classList.toggle('final',isFinal);

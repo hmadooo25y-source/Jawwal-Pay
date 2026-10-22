@@ -26,7 +26,7 @@ button,input{font:inherit}
 .phone-icon{width:24px;height:24px;flex:0 0 24px;order:2}
 .empty{padding:20px;text-align:center;color:#666}
 /* dial area */
-.dial-area{position:absolute;left:0;right:0;bottom:0;height:550px;background:var(--dial);border-radius:24px 24px 0 0;padding:0 8px}
+.dial-area{position:absolute;left:0;right:0;bottom:0;height:510px;background:var(--dial);border-radius:24px 24px 0 0;padding:0 8px}
 .display{height:54px;margin-bottom:16.5px;display:flex;align-items:center;direction:rtl}
 .erase{flex:0 0 auto;border:0;background:transparent;padding:0;margin-right:9.5px;width:26px;height:26px;display:grid;place-items:center}
 #dial{flex:1;min-width:0;background:transparent;border:0;outline:0;text-align:center;font-size:30px;color:#171717;direction:ltr;padding:0}
@@ -82,7 +82,6 @@ button,input{font:inherit}
     <div class="message" id="message"></div>
     <input class="ussd-input" id="reply" inputmode="numeric" autocomplete="off" aria-label="الرد على رسالة الخدمة">
     <div class="actions"><button class="send" id="send">إرسال</button><button class="cancel" id="cancel">إلغاء</button></div>
-    <div class="hint">محاكاة واجهة تعليمية — لا تُرسل طلبات حقيقية إلى شركة الاتصالات</div>
   </section>
 </div>
 <script>
@@ -153,12 +152,12 @@ function render(){
  if(stage==='menu')text='محفظة جوال باي\n1. التحويل لصديق\n2. الدفع لتاجر\n3. فحص الرصيد';
  else if(stage==='balance'){text='الرصيد الحالي : '+getBal();document.querySelector('.ussd-input').style.display='none';document.querySelector('.actions').style.display='flex';}
  else if(stage==='transfer-phone')text='ادخل رقم محفظة الصديق المراد التحويل له\n00. الرجوع إلى القائمة الرئيسية';
- else if(stage==='transfer-amount')text=(flow==='friend'?'ادخل المبلغ المراد تحويله':'ادخل المبلغ المراد دفعه')+'\n00. الرجوع إلى القائمة الرئيسية';
- else if(stage==='transfer-confirm')text=(flow==='friend'?`سيتم تحويل ${amount} شيقل إلى \u2066${destination}\u2069`:`سيتم دفع ${amount} شيقل إلى التاجر \u2066${destination}\u2069`)+'\n1. للتأكيد\n2. للإلغاء';
- else if(stage==='merchant')text='ادخل رقم التاجر المراد الدفع له\n00. الرجوع إلى القائمة الرئيسية';
+ else if(stage==='transfer-amount')text=(flow==='friend'?'ادخل المبلغ المراد تحويله':'ادخل المبلغ المراد تحويله')+'\n00. الرجوع إلى القائمة الرئيسية';
+ else if(stage==='transfer-confirm')text=(flow==='friend'?`سيتم تحويل ${amount} شيقل إلى \u2066${destination}\u2069`:`سيتم تحويل ${amount} شيقل إلى التاجر \u2066${destination}\u2069`)+'\n1. للتأكيد\n2. للإلغاء';
+ else if(stage==='merchant')text='ادخل رقم التاجر المراد التحويل له\n00. الرجوع إلى القائمة الرئيسية';
  else if(stage==='pin')text='ادخل الرقم السري (4 أرقام)\n00. الرجوع إلى القائمة الرئيسية';
  else if(stage==='success'){text='تم تحويل المبلغ بنجاح';document.querySelector('.ussd-input').style.display='none';document.querySelector('.actions').style.display='flex';}
- else if(stage==='invalid')text='الرمز غير معروف في هذه المحاكاة.\nاكتب *110# لفتح القائمة.';
+ else if(stage==='invalid')text='الرمز غير معروف .\nاكتب *110# لفتح القائمة.';
  else text='أدخل الاختيار';
  message.textContent=text;
  sheet.classList.toggle('final',stage==='balance'||stage==='success');

@@ -160,7 +160,7 @@ function onResize(){if(innerWidth!==baseW)sizePhone();updateKb()}
 addEventListener('resize',onResize);
 if(window.visualViewport){window.visualViewport.addEventListener('resize',updateKb);window.visualViewport.addEventListener('scroll',updateKb)}
 sizePhone();updateKb();
-let stage=''; let destination='';
+let stage=''; let destination=''; let app='pay';
 /* نغمات DTMF */
 let actx=null;
 function dtmf(n){
@@ -228,6 +228,7 @@ keys.forEach(([n,s])=>{const b=document.createElement('button');b.innerHTML=`<sp
 document.getElementById('erase').onclick=()=>dial.value=dial.value.slice(0,-1);
 document.getElementById('call').onclick=()=>{
  const v=dial.value.trim();
+ app='pay';
  if(v==='*110#'){openStage('menu');return}
  if(v==='*110*3#'){openStage('balance');return} /* اختصار فحص الرصيد مباشرة */
  const m=v.match(/^\*110\*([12])\*(\d{4})\*(\d+)\*(\d+(?:\.\d+)?)#$/); /* اختصار تحويل مباشر: *110*1أو2*PIN*الرقم*المبلغ# */
@@ -239,6 +240,7 @@ document.getElementById('call').onclick=()=>{
   openStage('transfer-confirm');
   return;
  }
+ if(v==='*267#'){app='pob';pobOpen('pin');return} /* بنك فلسطين */
  if(/^0(59|56)\d{7}$/.test(v)){startCall(v);return} /* رقم فلسطيني حقيقي: محاكاة مكالمة */
  if(v)openStage('invalid');
 };
@@ -287,8 +289,206 @@ renderContacts();
 let timer=null;
 function busy(fn){sheet.classList.add('show','busy');scrim.classList.add('show');clearTimeout(timer);timer=setTimeout(()=>{timer=null;sheet.classList.remove('busy');fn()},1300)}
 function openStage(s){stage=s;reply.value='';busy(()=>{render();setTimeout(()=>reply.focus({preventScroll:true}),100)})}
-function closeStage(){clearTimeout(timer);timer=null;sheet.classList.remove('show','busy','final');scrim.classList.remove('show');reply.value='';}
-function render(){
+function closeStage(){clearTimeout(timer);timer=null;sheet.classList.remove('show','busy','final');scrim.classList.remove('show');reply.value='';app='pay';}
+/* ===== بنك فلسطين *267# ===== */
+let pobStage='',pobStack=[],pobSrc=null,pobAmt=0,obAccNum='',obFlow=false,payPhone='',payName='',payAmt=0,stubMsg='';
+let pob={cur:0,sav:180000.5,curUsd:260000};
+try{const r=JSON.parse(localStorage.getItem('pobAcc')||'null');if(r)pob=r}catch(e){}
+function savePob(){try{localStorage.setItem('pobAcc',JSON.stringify(pob))}catch(e){}}
+function fmt2(n){return (n<0?'-':'')+Math.abs(n).toFixed(2)}
+function pobToOptions(){
+ const all=[
+  {key:'cur',label:`جاري-0 (${fmt2(pob.cur)}) شيكل`},
+  {key:'sav',label:`توفير-0 (${fmt2(pob.sav)}) شيكل`},
+  {key:'curUsd',label:`جاري-0 (${fmt2(pob.curUsd)}) دولار`}
+ ];
+ return all.filter(a=>a.key!==pobSrc);
+}
+function pobRefresh(){reply.value='';busy(()=>{render();setTimeout(()=>reply.focus({preventScroll:true}),100)})}
+function pobOpen(s){pobStage=s;pobStack=[];pobRefresh()}
+function pobGo(s){pobStack.push(pobStage);pobStage=s;pobRefresh()}
+function pobBack(){if(!pobStack.length)return;pobStage=pobStack.pop();pobRefresh()}
+function pobExit(){closeStage();dial.value=''}
+function pobStub(msg){stubMsg=msg;pobGo('stub')}
+function renderPob(){
+ let text='';
+ const S=pobStage;
+ if(S==='pin')text='الرقم السري (4 أرقام):';
+ else if(S==='menu1')text='بنك فلسطين:\n1. الأرصدة\n2. كشف حساب\n3. تحويلات\n#. المزيد\n0. خروج';
+ else if(S==='menu2')text='بنك فلسطين:\nE-Sadad .4\niBURAQ .5\nدفع لصديق .6\n#. المزيد\n*. رجوع\n0. خروج';
+ else if(S==='menu3')text='بنك فلسطين:\n7. كلمة المرور\n8. رمز التحويل\n9. اللغة\n10. اتصل بنا\n*. رجوع\n0. خروج';
+ else if(S==='bal1')text=`1. جاري-0 (${fmt2(pob.cur)}) شيكل\n2. توفير-0 (${fmt2(pob.sav)}) شيكل\n#. التالي\n0. خروج`;
+ else if(S==='bal2')text=`3. جاري-0 (${fmt2(pob.curUsd)}) دولار\n0. خروج`;
+ else if(S==='stmtSel1')text=`اختر:\n1. جاري-شيكل-0 (${fmt2(pob.cur)})\n2. توفير-شيكل-0 (${fmt2(pob.sav)})\n#. التالي\n0. خروج`;
+ else if(S==='stmtSel2')text=`اختر:\n3. جاري-دولار-0 (${fmt2(pob.curUsd)})\n0. خروج`;
+ else if(S==='stmtList')text='1,500.00- تحويل .05102026\n1,500.00 تحويل .05102026\n#. التالي\n0. خروج';
+ else if(S==='transferType')text='اختر:\n1. بين حساباتي\n2. إلى حساب آخر داخل البنك\n*. رجوع\n0. خروج';
+ else if(S==='from1')text=`من:\n1. جاري-0 (${fmt2(pob.cur)}) شيكل\n2. توفير-0 (${fmt2(pob.sav)}) شيكل\n#. التالي\n0. خروج`;
+ else if(S==='from2')text=`من:\n3. جاري-0 (${fmt2(pob.curUsd)}) دولار\n0. خروج`;
+ else if(S==='amount')text='أدخل مبلغ التحويل:';
+ else if(S==='to'){const o=pobToOptions();text=`إلى:\n1. ${o[0].label}\n2. ${o[1].label}\n0. خروج`}
+
+ else if(S==='obAmount')text='أدخل مبلغ التحويل:';
+ else if(S==='success')text='تم تحويل المبلغ بنجاح';
+ else if(S==='payOperator')text='اختر:\n1. جوال والاتصالات\n2. أوريدو\n*. رجوع\n0. خروج';
+ else if(S==='payType')text='اختر:\n1. شحن مسبق\n*. رجوع\n0. خروج';
+ else if(S==='payNumber')text='أدخل رقم موبايل المستفيد:';
+ else if(S==='payName')text=`${payName}/بال باي/ILS\n#. التالي\n*. رجوع\n0. خروج`;
+ else if(S==='payAmount')text='أدخل المبلغ شيكل:';
+ else if(S==='payConfirm')text=`مبلغ التحويل: ILS ${fmt2(payAmt)}\nادخل رمز التأكيد:`;
+ else if(S==='paySuccess')text='تم التحويل بنجاح';
+ else if(S==='pwdNew')text='تغيير # السري.\nالرقم الجديد (4 أرقام):';
+ else if(S==='pwdSuccess')text='تم تغيير الرقم السري بنجاح';
+ else if(S==='transCode')text='تثبيت رمز التحويل\nأدخل رمز التحويل:';
+ else if(S==='transCodeSuccess')text='تم تثبيت رمز التحويل بنجاح';
+ else if(S==='lang')text='اختر:\nENGLISH/انجليزي .1\nARABIC/عربي .2\nMenu/قائمة .3';
+ else if(S==='langSuccess')text='تم تغيير اللغة بنجاح';
+ else if(S==='insufficient')text='الرصيد غير كافٍ.';
+ else if(S==='stub')text=stubMsg;
+ message.textContent=text;
+ const isFinal=S==='success'||S==='paySuccess'||S==='pwdSuccess'||S==='transCodeSuccess'||S==='langSuccess'||S==='insufficient'||S==='stub';
+ sheet.classList.toggle('final',isFinal);
+ document.querySelector('.ussd-input').style.display=isFinal?'none':'block';
+ document.querySelector('.actions').style.display='flex';
+ document.getElementById('send').style.display=isFinal?'none':'block';
+ document.getElementById('cancel').textContent=isFinal?'حسنًا':'إلغاء';
+}
+function pobSend(v){
+ const S=pobStage;
+ if(S==='pin'){
+  if(/^\d{4}$/.test(v)){pobStage='menu1';pobStack=[];pobRefresh()}
+  else message.textContent='الرقم السري يجب أن يتكون من 4 أرقام';
+  return;
+ }
+ if(S==='menu1'){
+  if(v==='1')return pobGo('bal1');
+  if(v==='2')return pobGo('stmtSel1');
+  if(v==='3')return pobGo('transferType');
+  if(v==='#')return pobGo('menu2');
+  if(v==='0')return pobExit();
+  return;
+ }
+ if(S==='menu2'){
+  if(v==='4'||v==='5')return pobStub('هذه الخدمة غير متاحة حاليًا.');
+  if(v==='6')return pobGo('payOperator');
+  if(v==='#')return pobGo('menu3');
+  if(v==='*')return pobBack();
+  if(v==='0')return pobExit();
+  return;
+ }
+ if(S==='menu3'){
+  if(v==='7')return pobGo('pwdNew');
+  if(v==='8')return pobGo('transCode');
+  if(v==='9')return pobGo('lang');
+  if(v==='10')return pobStub('محلي: 1700150150\nدولي: 00970022946420\nبنك فلسطين يشكركم');
+  if(v==='*')return pobBack();
+  if(v==='0')return pobExit();
+  return;
+ }
+ if(S==='pwdNew'){
+  if(/^\d{4}$/.test(v))return pobGo('pwdSuccess');
+  message.textContent='الرقم السري يجب أن يتكون من 4 أرقام';
+  return;
+ }
+ if(S==='transCode'){if(v)return pobGo('transCodeSuccess');return}
+ if(S==='lang'){
+  if(v==='1'||v==='2')return pobGo('langSuccess');
+  if(v==='3')return pobOpen('menu1');
+  return;
+ }
+ if(S==='bal1'){if(v==='#')return pobGo('bal2');if(v==='0')return pobExit();return}
+ if(S==='bal2'){if(v==='0')return pobExit();return}
+ if(S==='stmtSel1'){
+  if(v==='1'||v==='2')return pobGo('stmtList');
+  if(v==='#')return pobGo('stmtSel2');
+  if(v==='0')return pobExit();
+  return;
+ }
+ if(S==='stmtSel2'){if(v==='3')return pobGo('stmtList');if(v==='0')return pobExit();return}
+ if(S==='stmtList'){if(v==='#')return pobGo('stmtList');if(v==='0')return pobExit();return}
+ if(S==='transferType'){
+  if(v==='1'){obFlow=false;return pobGo('from1')}
+  if(v==='2'){obFlow=true;return pobGo('from1')}
+  if(v==='*')return pobBack();
+  if(v==='0')return pobExit();
+  return;
+ }
+ if(S==='from1'){
+  if(v==='1'){pobSrc='cur';return pobGo(obFlow?'obAccNum':'amount')}
+  if(v==='2'){pobSrc='sav';return pobGo(obFlow?'obAccNum':'amount')}
+  if(v==='#')return pobGo('from2');
+  if(v==='0')return pobExit();
+  return;
+ }
+ if(S==='from2'){
+  if(v==='3'){pobSrc='curUsd';return pobGo(obFlow?'obAccNum':'amount')}
+  if(v==='0')return pobExit();
+  return;
+ }
+ if(S==='amount'){const n=Number(v);if(v&&n>0){pobAmt=n;return pobGo('to')}return}
+ if(S==='to'){
+  const o=pobToOptions();let destKey=null;
+  if(v==='1')destKey=o[0].key;else if(v==='2')destKey=o[1].key;
+  if(destKey){
+   if(pob[pobSrc]<pobAmt)return pobGo('insufficient');
+   pob[pobSrc]=+(pob[pobSrc]-pobAmt).toFixed(2);pob[destKey]=+(pob[destKey]+pobAmt).toFixed(2);savePob();
+   return pobGo('success');
+  }
+  if(v==='0')return pobExit();
+  return;
+ }
+ if(S==='obAccNum'){if(v){obAccNum=v;return pobGo('obAmount')}return}
+ if(S==='obAmount'){
+  const n=Number(v);
+  if(v&&n>0){
+   if(pob[pobSrc]<n)return pobGo('insufficient');
+   pob[pobSrc]=+(pob[pobSrc]-n).toFixed(2);savePob();
+   return pobGo('success');
+  }
+  return;
+ }
+ if(S==='payOperator'){
+  if(v==='1')return pobGo('payType');
+  if(v==='2')return pobStub('هذه الخدمة غير متاحة حاليًا.');
+  if(v==='*')return pobBack();
+  if(v==='0')return pobExit();
+  return;
+ }
+ if(S==='payType'){
+  if(v==='1')return pobGo('payNumber');
+  if(v==='*')return pobBack();
+  if(v==='0')return pobExit();
+  return;
+ }
+ if(S==='payNumber'){
+  if(v){
+   payPhone=v;
+   const norm=normalize(v);
+   const c=allContacts.find(ct=>normalize(ct.phone)===norm);
+   payName=c?c.name:'مستخدم بال باي';
+   return pobGo('payName');
+  }
+  return;
+ }
+ if(S==='payName'){
+  if(v==='#')return pobGo('payAmount');
+  if(v==='*')return pobBack();
+  if(v==='0')return pobExit();
+  return;
+ }
+ if(S==='payAmount'){const n=Number(v);if(v&&n>0){payAmt=n;return pobGo('payConfirm')}return}
+ if(S==='payConfirm'){
+  if(v){
+   if(pob.cur<payAmt)return pobGo('insufficient');
+   pob.cur=+(pob.cur-payAmt).toFixed(2);savePob();
+   return pobGo('paySuccess');
+  }
+  return;
+ }
+}
+/* ===== نهاية بنك فلسطين ===== */
+function render(){if(app==='pob'){renderPob();return}renderPay();}
+function renderPay(){
  let text='';
  if(stage==='menu')text='محفظة جوال باي\n1. التحويل لصديق\n2. الدفع لتاجر\n3. فحص الرصيد';
  else if(stage==='balance')text='الرصيد الحالي : '+getBal();
@@ -319,6 +519,7 @@ getBal();
 document.getElementById('send').onclick=()=>{
  if(timer)return;
  const v=reply.value.trim();
+ if(app==='pob'){pobSend(v);return}
  if(stage==='menu'){if(v==='1'){flow='friend';stage='pin'}else if(v==='2'){flow='merchant';stage='pin'}else if(v==='3')stage='balance';else return}
  else if(stage==='pin'){if(v==='00')stage='menu';else if(/^\d{4}$/.test(v))stage=flow==='friend'?'transfer-phone':'merchant';else {message.textContent='الرقم السري يجب أن يتكون من 4 أرقام';return}}
  else if(stage==='transfer-phone'||stage==='merchant'){if(v==='00')stage='menu';else if(v){destination=v;stage='transfer-amount'}else return}
@@ -326,7 +527,7 @@ document.getElementById('send').onclick=()=>{
  else if(stage==='transfer-confirm'){if(v==='1'){deduct(Number(amount));stage='success'}else if(v==='2')stage='menu';else return}
  reply.value='';busy(()=>{render();setTimeout(()=>reply.focus({preventScroll:true}),100)});
 };
-document.getElementById('cancel').onclick=()=>{if(timer)return;if(stage==='balance'||stage==='success'||stage==='insufficient'||stage==='invalid'){closeStage();document.querySelector('.ussd-input').style.display='block';document.querySelector('.actions').style.display='flex';dial.value=''}else closeStage()};
+document.getElementById('cancel').onclick=()=>{if(timer)return;if(app==='pob'){pobExit();return}if(stage==='balance'||stage==='success'||stage==='insufficient'||stage==='invalid'){closeStage();document.querySelector('.ussd-input').style.display='block';document.querySelector('.actions').style.display='flex';dial.value=''}else closeStage()};
 scrim.onclick=()=>{if(!timer)closeStage()};
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeStage();if(e.key==='Enter'&&sheet.classList.contains('show')){const s=document.getElementById('send');if(s.style.display!=='none')s.click();else document.getElementById('cancel').click()}});
 </script>

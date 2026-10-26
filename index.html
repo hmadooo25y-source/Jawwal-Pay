@@ -291,11 +291,20 @@ function busy(fn){sheet.classList.add('show','busy');scrim.classList.add('show')
 function openStage(s){stage=s;reply.value='';busy(()=>{render();setTimeout(()=>reply.focus({preventScroll:true}),100)})}
 function closeStage(){clearTimeout(timer);timer=null;sheet.classList.remove('show','busy','final');scrim.classList.remove('show');reply.value='';app='pay';}
 /* ===== بنك فلسطين *267# ===== */
-let pobStage='',pobStack=[],pobSrc=null,pobAmt=0,obAccNum='',obFlow=false,payPhone='',payName='',payAmt=0,stubMsg='';
-let pob={cur:0,sav:180000.5,curUsd:260000};
+let pobStage='',pobStack=[],pobSrc=null,pobAmt=0,obFlow=false,payPhone='',payName='',payAmt=0,paySrc=null,stubMsg='',stmtPage=0;
+let pob={cur:0,sav:268000,curUsd:189000};
 try{const r=JSON.parse(localStorage.getItem('pobAcc')||'null');if(r)pob=r}catch(e){}
 function savePob(){try{localStorage.setItem('pobAcc',JSON.stringify(pob))}catch(e){}}
-function fmt2(n){return (n<0?'-':'')+Math.abs(n).toFixed(2)}
+function fmt2(n){const s=Math.abs(n).toFixed(2);const p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return (n<0?'-':'')+p.join('.')}
+function pobTxns(){
+ const days=20,out=[],now=new Date();
+ for(let i=0;i<days;i++){
+  const d=new Date(now);d.setDate(d.getDate()-i);
+  const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),yyyy=d.getFullYear();
+  out.push(`1,800.00 تحويل .${dd}${mm}${yyyy}`);
+ }
+ return out;
+}
 function pobToOptions(){
  const all=[
   {key:'cur',label:`جاري-0 (${fmt2(pob.cur)}) شيكل`},
@@ -307,6 +316,7 @@ function pobToOptions(){
 function pobRefresh(){reply.value='';busy(()=>{render();setTimeout(()=>reply.focus({preventScroll:true}),100)})}
 function pobOpen(s){pobStage=s;pobStack=[];pobRefresh()}
 function pobGo(s){pobStack.push(pobStage);pobStage=s;pobRefresh()}
+function pobPageNext(){stmtPage++;pobRefresh()}
 function pobBack(){if(!pobStack.length)return;pobStage=pobStack.pop();pobRefresh()}
 function pobExit(){closeStage();dial.value=''}
 function pobStub(msg){stubMsg=msg;pobGo('stub')}
@@ -315,27 +325,26 @@ function renderPob(){
  const S=pobStage;
  if(S==='pin')text='الرقم السري (4 أرقام):';
  else if(S==='menu1')text='بنك فلسطين:\n1. الأرصدة\n2. كشف حساب\n3. تحويلات\n#. المزيد\n0. خروج';
- else if(S==='menu2')text='بنك فلسطين:\nE-Sadad .4\niBURAQ .5\nدفع لصديق .6\n#. المزيد\n*. رجوع\n0. خروج';
+ else if(S==='menu2')text='بنك فلسطين:\nE-Sadad .4\niBURAQ .5\n6. دفع لصديق\n#. المزيد\n*. رجوع\n0. خروج';
  else if(S==='menu3')text='بنك فلسطين:\n7. كلمة المرور\n8. رمز التحويل\n9. اللغة\n10. اتصل بنا\n*. رجوع\n0. خروج';
  else if(S==='bal1')text=`1. جاري-0 (${fmt2(pob.cur)}) شيكل\n2. توفير-0 (${fmt2(pob.sav)}) شيكل\n#. التالي\n0. خروج`;
  else if(S==='bal2')text=`3. جاري-0 (${fmt2(pob.curUsd)}) دولار\n0. خروج`;
  else if(S==='stmtSel1')text=`اختر:\n1. جاري-شيكل-0 (${fmt2(pob.cur)})\n2. توفير-شيكل-0 (${fmt2(pob.sav)})\n#. التالي\n0. خروج`;
  else if(S==='stmtSel2')text=`اختر:\n3. جاري-دولار-0 (${fmt2(pob.curUsd)})\n0. خروج`;
- else if(S==='stmtList')text='1,500.00- تحويل .05102026\n1,500.00 تحويل .05102026\n#. التالي\n0. خروج';
+ else if(S==='stmtList'){const t=pobTxns();const items=t.slice(stmtPage*2,stmtPage*2+2);const more=(stmtPage+1)*2<t.length;text=items.join('\n')+(more?'\n#. التالي':'')+'\n0. خروج'}
  else if(S==='transferType')text='اختر:\n1. بين حساباتي\n2. إلى حساب آخر داخل البنك\n*. رجوع\n0. خروج';
  else if(S==='from1')text=`من:\n1. جاري-0 (${fmt2(pob.cur)}) شيكل\n2. توفير-0 (${fmt2(pob.sav)}) شيكل\n#. التالي\n0. خروج`;
  else if(S==='from2')text=`من:\n3. جاري-0 (${fmt2(pob.curUsd)}) دولار\n0. خروج`;
  else if(S==='amount')text='أدخل مبلغ التحويل:';
  else if(S==='to'){const o=pobToOptions();text=`إلى:\n1. ${o[0].label}\n2. ${o[1].label}\n0. خروج`}
-
  else if(S==='obAmount')text='أدخل مبلغ التحويل:';
  else if(S==='success')text='تم تحويل المبلغ بنجاح';
- else if(S==='payOperator')text='اختر:\n1. جوال والاتصالات\n2. أوريدو\n*. رجوع\n0. خروج';
- else if(S==='payType')text='اختر:\n1. شحن مسبق\n*. رجوع\n0. خروج';
- else if(S==='payNumber')text='أدخل رقم موبايل المستفيد:';
- else if(S==='payName')text=`${payName}/بال باي/ILS\n#. التالي\n*. رجوع\n0. خروج`;
- else if(S==='payAmount')text='أدخل المبلغ شيكل:';
- else if(S==='payConfirm')text=`مبلغ التحويل: ILS ${fmt2(payAmt)}\nادخل رمز التأكيد:`;
+ else if(S==='esOperator')text='اختر:\n1. جوال والاتصالات\n2. أوريدو\n*. رجوع\n0. خروج';
+ else if(S==='payNumber')text='ادخل رقم موبايل الصديق:';
+ else if(S==='payName')text=`اسم الصديق: ${payName}\n1. تاكيد\n0. خروج`;
+ else if(S==='payAmount')text='أدخل مبلغ التحويل:';
+ else if(S==='payFrom')text=`من:\n1. جاري-0 (${fmt2(pob.cur)}) شيكل\n2. توفير-0 (${fmt2(pob.sav)}) شيكل\n0. خروج`;
+ else if(S==='payConfirm')text='ادخل رمز التأكيد:';
  else if(S==='paySuccess')text='تم التحويل بنجاح';
  else if(S==='pwdNew')text='تغيير # السري.\nالرقم الجديد (4 أرقام):';
  else if(S==='pwdSuccess')text='تم تغيير الرقم السري بنجاح';
@@ -369,8 +378,9 @@ function pobSend(v){
   return;
  }
  if(S==='menu2'){
-  if(v==='4'||v==='5')return pobStub('هذه الخدمة غير متاحة حاليًا.');
-  if(v==='6')return pobGo('payOperator');
+  if(v==='4')return pobGo('esOperator');
+  if(v==='5')return pobStub('هذه الخدمة غير متاحة حاليًا.');
+  if(v==='6')return pobGo('payNumber');
   if(v==='#')return pobGo('menu3');
   if(v==='*')return pobBack();
   if(v==='0')return pobExit();
@@ -399,13 +409,18 @@ function pobSend(v){
  if(S==='bal1'){if(v==='#')return pobGo('bal2');if(v==='0')return pobExit();return}
  if(S==='bal2'){if(v==='0')return pobExit();return}
  if(S==='stmtSel1'){
-  if(v==='1'||v==='2')return pobGo('stmtList');
+  if(v==='1'||v==='2'){stmtPage=0;return pobGo('stmtList')}
   if(v==='#')return pobGo('stmtSel2');
   if(v==='0')return pobExit();
   return;
  }
- if(S==='stmtSel2'){if(v==='3')return pobGo('stmtList');if(v==='0')return pobExit();return}
- if(S==='stmtList'){if(v==='#')return pobGo('stmtList');if(v==='0')return pobExit();return}
+ if(S==='stmtSel2'){if(v==='3'){stmtPage=0;return pobGo('stmtList')}if(v==='0')return pobExit();return}
+ if(S==='stmtList'){
+  const t=pobTxns();const more=(stmtPage+1)*2<t.length;
+  if(v==='#'&&more)return pobPageNext();
+  if(v==='0')return pobExit();
+  return;
+ }
  if(S==='transferType'){
   if(v==='1'){obFlow=false;return pobGo('from1')}
   if(v==='2'){obFlow=true;return pobGo('from1')}
@@ -414,14 +429,14 @@ function pobSend(v){
   return;
  }
  if(S==='from1'){
-  if(v==='1'){pobSrc='cur';return pobGo(obFlow?'obAccNum':'amount')}
-  if(v==='2'){pobSrc='sav';return pobGo(obFlow?'obAccNum':'amount')}
+  if(v==='1'){pobSrc='cur';return pobGo(obFlow?'obAmount':'amount')}
+  if(v==='2'){pobSrc='sav';return pobGo(obFlow?'obAmount':'amount')}
   if(v==='#')return pobGo('from2');
   if(v==='0')return pobExit();
   return;
  }
  if(S==='from2'){
-  if(v==='3'){pobSrc='curUsd';return pobGo(obFlow?'obAccNum':'amount')}
+  if(v==='3'){pobSrc='curUsd';return pobGo(obFlow?'obAmount':'amount')}
   if(v==='0')return pobExit();
   return;
  }
@@ -437,7 +452,6 @@ function pobSend(v){
   if(v==='0')return pobExit();
   return;
  }
- if(S==='obAccNum'){if(v){obAccNum=v;return pobGo('obAmount')}return}
  if(S==='obAmount'){
   const n=Number(v);
   if(v&&n>0){
@@ -447,15 +461,8 @@ function pobSend(v){
   }
   return;
  }
- if(S==='payOperator'){
-  if(v==='1')return pobGo('payType');
-  if(v==='2')return pobStub('هذه الخدمة غير متاحة حاليًا.');
-  if(v==='*')return pobBack();
-  if(v==='0')return pobExit();
-  return;
- }
- if(S==='payType'){
-  if(v==='1')return pobGo('payNumber');
+ if(S==='esOperator'){
+  if(v==='1'||v==='2')return pobStub('هذه الخدمة غير متاحة حاليًا.');
   if(v==='*')return pobBack();
   if(v==='0')return pobExit();
   return;
@@ -471,16 +478,24 @@ function pobSend(v){
   return;
  }
  if(S==='payName'){
-  if(v==='#')return pobGo('payAmount');
-  if(v==='*')return pobBack();
+  if(v==='1')return pobGo('payAmount');
   if(v==='0')return pobExit();
   return;
  }
- if(S==='payAmount'){const n=Number(v);if(v&&n>0){payAmt=n;return pobGo('payConfirm')}return}
+ if(S==='payAmount'){const n=Number(v);if(v&&n>0){payAmt=n;return pobGo('payFrom')}return}
+ if(S==='payFrom'){
+  if(v==='1'||v==='2'){
+   const src=v==='1'?'cur':'sav';
+   if(pob[src]<payAmt)return pobGo('insufficient');
+   paySrc=src;return pobGo('payConfirm');
+  }
+  if(v==='0')return pobExit();
+  return;
+ }
  if(S==='payConfirm'){
   if(v){
-   if(pob.cur<payAmt)return pobGo('insufficient');
-   pob.cur=+(pob.cur-payAmt).toFixed(2);savePob();
+   if(pob[paySrc]<payAmt)return pobGo('insufficient');
+   pob[paySrc]=+(pob[paySrc]-payAmt).toFixed(2);savePob();
    return pobGo('paySuccess');
   }
   return;
